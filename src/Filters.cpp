@@ -35,7 +35,8 @@ along with the ASTRA Toolbox. If not, see <http://www.gnu.org/licenses/>.
 #include <utility>
 #include <cstring>
 #include <mutex>
-
+#include <atomic>
+#include <memory>
 namespace astra {
 
 std::vector<float> generateRampFilter(size_t iSize)
@@ -174,39 +175,36 @@ struct FilterCacheEntry {
 //
 //	return std::make_shared<std::vector<float>>(std::move(new_filter));
 //}
-//#include <atomic>
-//#include <memory>
-//
-//std::shared_ptr<std::vector<float>> getRampFilter(size_t iSize)
-//{
-//	static std::atomic<FilterCacheEntry*> cached_entry{ nullptr };
-//	FilterCacheEntry* current = cached_entry.load(std::memory_order_acquire);
-//	if (current && current->m_iSize == iSize) {
-//		return std::make_shared<std::vector<float>>(current->m_filter);
-//	}
-//	auto new_entry = std::make_unique<FilterCacheEntry>();
-//	new_entry->m_iSize = iSize;
-//	new_entry->m_filter = generateRampFilter(iSize);
-//	FilterCacheEntry* old_entry = cached_entry.exchange(new_entry.release(), std::memory_order_acq_rel);
-//	if (old_entry) {
-//		delete old_entry;
-//	}
-//	FilterCacheEntry* successful_entry = cached_entry.load(std::memory_order_acquire);
-//	return std::make_shared<std::vector<float>>(successful_entry->m_filter);
-//}
 std::shared_ptr<std::vector<float>> getRampFilter(size_t iSize)
 {
-	static size_t cached_size = 0;
-	static std::vector<float> cached_filter;
-
-	if (cached_size == iSize && !cached_filter.empty()) {
-		return std::make_shared<std::vector<float>>(cached_filter);
+	static std::atomic<FilterCacheEntry*> cached_entry{ nullptr };
+	FilterCacheEntry* current = cached_entry.load(std::memory_order_acquire);
+	if (current && current->m_iSize == iSize) {
+		return std::make_shared<std::vector<float>>(current->m_filter);
 	}
-	cached_filter = generateRampFilter(iSize);
-	cached_size = iSize;
-
-	return std::make_shared<std::vector<float>>(cached_filter);
+	auto new_entry = std::make_unique<FilterCacheEntry>();
+	new_entry->m_iSize = iSize;
+	new_entry->m_filter = generateRampFilter(iSize);
+	FilterCacheEntry* old_entry = cached_entry.exchange(new_entry.release(), std::memory_order_acq_rel);
+	if (old_entry) {
+		delete old_entry;
+	}
+	FilterCacheEntry* successful_entry = cached_entry.load(std::memory_order_acquire);
+	return std::make_shared<std::vector<float>>(successful_entry->m_filter);
 }
+//std::shared_ptr<std::vector<float>> getRampFilter(size_t iSize)
+//{
+//	static size_t cached_size = 0;
+//	static std::vector<float> cached_filter;
+//
+//	if (cached_size == iSize && !cached_filter.empty()) {
+//		return std::make_shared<std::vector<float>>(cached_filter);
+//	}
+//	cached_filter = generateRampFilter(iSize);
+//	cached_size = iSize;
+//
+//	return std::make_shared<std::vector<float>>(cached_filter);
+//}
 
 float *genFilter(const SFilterConfig &_cfg,
                int _iFFTRealDetectorCount,
