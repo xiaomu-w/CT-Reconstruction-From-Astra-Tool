@@ -1,10 +1,6 @@
-# 创建调试用的可执行文件
+
 add_executable(astra_debug main.cpp)
-
-# 链接静态库
 target_link_libraries(astra_debug PRIVATE astra_static)
-
-# 包含路径
 target_include_directories(astra_debug PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/../include
 )

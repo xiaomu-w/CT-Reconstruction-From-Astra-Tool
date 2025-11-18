@@ -1,4 +1,3 @@
-# 递归查找所有源文件
 file(GLOB_RECURSE ASTRA_SOURCES
     "*.cpp"
     "*.cxx"
@@ -9,21 +8,15 @@ file(GLOB_RECURSE ASTRA_HEADERS
     "../include/astra/*.hpp" 
     "../include/astra/*.inl"
 )
-# 创建静态库
 add_library(astra_static STATIC ${ASTRA_SOURCES})
 
-# 设置库属性
 set_target_properties(astra_static PROPERTIES
     OUTPUT_NAME "astra"
     PUBLIC_HEADER "${ASTRA_HEADERS}"
 )
-
-# 包含路径
 target_include_directories(astra_static PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/../include
 )
-
-# 调试选项
 target_compile_options(astra_static PRIVATE
     $<$<CXX_COMPILER_ID:MSVC>:/Zi>
     $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-g>
